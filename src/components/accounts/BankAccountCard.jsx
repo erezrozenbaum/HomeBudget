@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +44,7 @@ export default function BankAccountCard({ account, onEdit, onDelete }) {
       <div className="flex items-center p-4 gap-3">
         <div 
           className="w-2 h-12 rounded-full" 
-          style={{ backgroundColor: account.color || '#4b5563' }}
+          style={{ backgroundColor: account.color || '#4b5563', opacity: account.is_active ? 1 : 0.5 }}
         />
         
         <div className="flex-1">
@@ -92,7 +91,7 @@ export default function BankAccountCard({ account, onEdit, onDelete }) {
           </div>
           
           <div className="mt-2 text-xl font-bold text-white">
-            {account.currency} {account.current_balance?.toLocaleString()}
+            {account.currency} {account.balance?.toLocaleString()}
           </div>
         </div>
       </div>

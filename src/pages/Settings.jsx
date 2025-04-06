@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { BankAccount, CreditCard, Transaction, Investment, Goal, Loan, RecurringTransaction, Insurance, Category, InsuranceCategory, UserSettings } from '@/api/entities';
-import { Download, Trash, GripVertical, Save, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Download, Trash, GripVertical, Save, Plus, Pencil, Trash2, Sun, Moon, Laptop, Globe, Languages, Database, Shield, Lock } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import DocumentationContent from '../components/settings/DocumentationContent';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Upload } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 const defaultNavigation = [
   { name: 'Dashboard', icon: 'Home' },
@@ -143,6 +146,7 @@ export default function SettingsPage() {
   const [newSubcategoryNameHe, setNewSubcategoryNameHe] = useState('');
   const [showSidebarOrderDialog, setShowSidebarOrderDialog] = useState(false);
   const [editingSubcategoryIndex, setEditingSubcategoryIndex] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Get supported timezones
   const timezones = [
@@ -623,45 +627,60 @@ export default function SettingsPage() {
 
   const handleDeleteAllData = async () => {
     try {
-      await Promise.all([
-        BankAccount.list().then(accounts => 
-          Promise.all(accounts.map(acc => BankAccount.delete(acc.id)))
-        ),
-        CreditCard.list().then(cards => 
-          Promise.all(cards.map(card => CreditCard.delete(card.id)))
-        ),
-        Transaction.list().then(transactions => 
-          Promise.all(transactions.map(tx => Transaction.delete(tx.id)))
-        ),
-        Investment.list().then(investments => 
-          Promise.all(investments.map(inv => Investment.delete(inv.id)))
-        ),
-        Category.list().then(categories => 
-          Promise.all(categories.map(cat => Category.delete(cat.id)))
-        ),
-        InsuranceCategory.list().then(categories => 
-          Promise.all(categories.map(cat => InsuranceCategory.delete(cat.id)))
-        ),
-        Goal.list().then(goals => 
-          Promise.all(goals.map(goal => Goal.delete(goal.id)))
-        ),
-        Loan.list().then(loans => 
-          Promise.all(loans.map(loan => Loan.delete(loan.id)))
-        ),
-        RecurringTransaction.list().then(txs => 
-          Promise.all(txs.map(tx => RecurringTransaction.delete(tx.id)))
-        ),
-        Insurance.list().then(insurances => 
-          Promise.all(insurances.map(ins => Insurance.delete(ins.id)))
-        )
-        // Keep user settings
-      ]);
-      
-      alert(t('dataDeletedSuccessfully'));
+      const response = await fetch('http://localhost:3002/api/accounts/clear-all-data', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete data');
+      }
+
+      toast({
+        title: t('dataDeletedSuccessfully'),
+        variant: 'success',
+      });
+
+      // Reload the page after successful deletion
       window.location.reload();
     } catch (error) {
       console.error('Error deleting data:', error);
-      alert(t('errorDeletingData'));
+      toast({
+        title: t('errorDeletingData'),
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleImportData = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      
+      if (response.ok) {
+        // Reload settings after import
+        const settings = await UserSettings.list();
+        if (settings && settings.length > 0) {
+          setUserSettings(settings[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error importing data:', error);
     }
   };
 

@@ -24,8 +24,6 @@ import RecurringTransactions from "./RecurringTransactions";
 
 import Insurance from "./Insurance";
 
-import _document from "./_document";
-
 import Business from "./Business";
 
 import BusinessCreate from "./BusinessCreate";
@@ -48,9 +46,13 @@ import EmergencyFund from "./EmergencyFund";
 
 import UserAudit from "./UserAudit";
 
+import Login from "./Login";
+
+import Register from "./Register";
+
 import _app from "./_app";
 
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 
 const PAGES = {
     
@@ -78,8 +80,6 @@ const PAGES = {
     
     Insurance: Insurance,
     
-    _document: _document,
-    
     Business: Business,
     
     BusinessCreate: BusinessCreate,
@@ -102,6 +102,10 @@ const PAGES = {
     
     UserAudit: UserAudit,
     
+    Login: Login,
+    
+    Register: Register,
+    
     _app: _app,
     
 }
@@ -119,68 +123,66 @@ function _getCurrentPage(url) {
     return pageName || Object.keys(PAGES)[0];
 }
 
+// Protected Route component
+function ProtectedRoute({ children }) {
+    const token = localStorage.getItem('token');
+    const location = useLocation();
+
+    if (!token) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    return children;
+}
+
 // Create a wrapper component that uses useLocation inside the Router context
 function PagesContent() {
     const location = useLocation();
     const currentPage = _getCurrentPage(location.pathname);
+    const token = localStorage.getItem('token');
+
+    // If user is logged in and tries to access login/register pages, redirect to dashboard
+    if (token && (location.pathname === '/login' || location.pathname === '/register')) {
+        return <Navigate to="/" replace />;
+    }
     
+    // For login and register pages, don't use the Layout component
+    if (location.pathname === '/login' || location.pathname === '/register') {
+        return (
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+            </Routes>
+        );
+    }
+
     return (
         <Layout currentPageName={currentPage}>
             <Routes>            
-                
-                    <Route path="/" element={<Dashboard />} />
-                
-                
-                <Route path="/Dashboard" element={<Dashboard />} />
-                
-                <Route path="/BankAccounts" element={<BankAccounts />} />
-                
-                <Route path="/CreditCards" element={<CreditCards />} />
-                
-                <Route path="/Transactions" element={<Transactions />} />
-                
-                <Route path="/Settings" element={<Settings />} />
-                
-                <Route path="/Investments" element={<Investments />} />
-                
-                <Route path="/Goals" element={<Goals />} />
-                
-                <Route path="/Reports" element={<Reports />} />
-                
-                <Route path="/Loans" element={<Loans />} />
-                
-                <Route path="/NetWorth" element={<NetWorth />} />
-                
-                <Route path="/RecurringTransactions" element={<RecurringTransactions />} />
-                
-                <Route path="/Insurance" element={<Insurance />} />
-                
-                <Route path="/_document" element={<_document />} />
-                
-                <Route path="/Business" element={<Business />} />
-                
-                <Route path="/BusinessCreate" element={<BusinessCreate />} />
-                
-                <Route path="/BusinessDetail" element={<BusinessDetail />} />
-                
-                <Route path="/BusinessEdit" element={<BusinessEdit />} />
-                
-                <Route path="/BusinessClients" element={<BusinessClients />} />
-                
-                <Route path="/BusinessInvoices" element={<BusinessInvoices />} />
-                
-                <Route path="/BusinessProjects" element={<BusinessProjects />} />
-                
-                <Route path="/BusinessSettings" element={<BusinessSettings />} />
-                
-                <Route path="/FinancialAdvisor" element={<FinancialAdvisor />} />
-                
-                <Route path="/EmergencyFund" element={<EmergencyFund />} />
-                
-                <Route path="/UserAudit" element={<UserAudit />} />
-                
-                <Route path="/_app" element={<_app />} />
-                
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/Dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/BankAccounts" element={<ProtectedRoute><BankAccounts /></ProtectedRoute>} />
+                <Route path="/CreditCards" element={<ProtectedRoute><CreditCards /></ProtectedRoute>} />
+                <Route path="/Transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+                <Route path="/Settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/Investments" element={<ProtectedRoute><Investments /></ProtectedRoute>} />
+                <Route path="/Goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+                <Route path="/Reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                <Route path="/Loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
+                <Route path="/NetWorth" element={<ProtectedRoute><NetWorth /></ProtectedRoute>} />
+                <Route path="/RecurringTransactions" element={<ProtectedRoute><RecurringTransactions /></ProtectedRoute>} />
+                <Route path="/Insurance" element={<ProtectedRoute><Insurance /></ProtectedRoute>} />
+                <Route path="/Business" element={<ProtectedRoute><Business /></ProtectedRoute>} />
+                <Route path="/BusinessCreate" element={<ProtectedRoute><BusinessCreate /></ProtectedRoute>} />
+                <Route path="/BusinessDetail" element={<ProtectedRoute><BusinessDetail /></ProtectedRoute>} />
+                <Route path="/BusinessEdit" element={<ProtectedRoute><BusinessEdit /></ProtectedRoute>} />
+                <Route path="/BusinessClients" element={<ProtectedRoute><BusinessClients /></ProtectedRoute>} />
+                <Route path="/BusinessInvoices" element={<ProtectedRoute><BusinessInvoices /></ProtectedRoute>} />
+                <Route path="/BusinessProjects" element={<ProtectedRoute><BusinessProjects /></ProtectedRoute>} />
+                <Route path="/BusinessSettings" element={<ProtectedRoute><BusinessSettings /></ProtectedRoute>} />
+                <Route path="/FinancialAdvisor" element={<ProtectedRoute><FinancialAdvisor /></ProtectedRoute>} />
+                <Route path="/EmergencyFund" element={<ProtectedRoute><EmergencyFund /></ProtectedRoute>} />
+                <Route path="/UserAudit" element={<ProtectedRoute><UserAudit /></ProtectedRoute>} />
             </Routes>
         </Layout>
     );

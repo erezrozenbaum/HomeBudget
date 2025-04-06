@@ -1,12 +1,10 @@
 import React from 'react';
 import Layout from '../layout';
-import '../globals.css';
+import '../index.css';
 
-export default function App({ Component, pageProps, router }) {
-  const currentPageName = router.pathname.split('/')[1] || 'Dashboard';
-  
+export default function App({ Component, pageProps }) {
   return (
-    <Layout currentPageName={currentPageName}>
+    <Layout>
       <Component {...pageProps} />
     </Layout>
   );

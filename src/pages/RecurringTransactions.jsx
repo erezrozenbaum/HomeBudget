@@ -17,7 +17,6 @@ import { Transaction } from '@/api/entities';
 import { createPageUrl } from '@/utils';
 
 export default function RecurringTransactionsPage() {
-  const [transactions, setTransactions] = useState([]);
   const [recurringTransactions, setRecurringTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -40,7 +39,7 @@ export default function RecurringTransactionsPage() {
     try {
       // Use Promise.allSettled instead of Promise.all to handle partial failures
       const results = await Promise.allSettled([
-        Transaction.list('-date'),
+        RecurringTransaction.list(),
         Category.list(),
         BankAccount.list(),
         CreditCard.list(),
@@ -49,7 +48,7 @@ export default function RecurringTransactionsPage() {
       
       // Process results and extract data or errors
       const [
-        transactionsResult,
+        recurringTransactionsResult,
         categoriesResult, 
         accountsResult, 
         cardsResult, 
@@ -57,55 +56,10 @@ export default function RecurringTransactionsPage() {
       ] = results;
       
       // Handle each result individually
-      if (transactionsResult.status === 'fulfilled') {
-        const transactionsData = transactionsResult.value || [];
-        setTransactions(transactionsData);
-        
-        // Process recurring transactions
-        const recurringData = transactionsData.filter(t => t.is_recurring);
-        
-        // Group by recurring_group_id to find unique recurring transaction patterns
-        const recurringGroups = {};
-        
-        recurringData.forEach(t => {
-          if (t.recurring_group_id) {
-            if (!recurringGroups[t.recurring_group_id]) {
-              recurringGroups[t.recurring_group_id] = [];
-            }
-            recurringGroups[t.recurring_group_id].push(t);
-          } else {
-            // For backward compatibility, create a group for standalone recurring transactions
-            recurringGroups[t.id] = [t];
-          }
-        });
-        
-        // Convert to RecurringTransaction format
-        const processedRecurringTransactions = Object.values(recurringGroups).map(group => {
-          // Use most recent transaction in group as the template
-          const latestTransaction = group.sort((a, b) => 
-            new Date(b.date) - new Date(a.date)
-          )[0];
-          
-          return {
-            id: latestTransaction.recurring_group_id || latestTransaction.id,
-            name: latestTransaction.description || latestTransaction.category,
-            type: latestTransaction.type,
-            amount: latestTransaction.amount,
-            currency: latestTransaction.currency,
-            frequency: latestTransaction.recurring_frequency || "monthly",
-            start_date: latestTransaction.date,
-            end_date: latestTransaction.recurring_end_date,
-            category: latestTransaction.category,
-            subcategory: latestTransaction.subcategory,
-            bank_account_id: latestTransaction.bank_account_id,
-            credit_card_id: latestTransaction.credit_card_id,
-            transactions: group
-          };
-        });
-        
-        setRecurringTransactions(processedRecurringTransactions);
+      if (recurringTransactionsResult.status === 'fulfilled') {
+        setRecurringTransactions(recurringTransactionsResult.value || []);
       } else {
-        console.error('Failed to load transactions:', transactionsResult.reason);
+        console.error('Failed to load recurring transactions:', recurringTransactionsResult.reason);
         setError('Failed to load transactions. Please try again later.');
       }
       
@@ -143,7 +97,7 @@ export default function RecurringTransactionsPage() {
   const handleDelete = async (transactionId) => {
     try {
       // Delete all transactions with the same recurring_group_id or id
-      const transactionsToDelete = transactions.filter(t => t.recurring_group_id === transactionId || t.id === transactionId);
+      const transactionsToDelete = recurringTransactions.filter(t => t.recurring_group_id === transactionId || t.id === transactionId);
       
       if (transactionsToDelete.length > 0) {
         // Use serial deletion to avoid rate limiting

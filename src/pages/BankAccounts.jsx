@@ -1,24 +1,42 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Wallet, X } from "lucide-react";
+import { Plus, Wallet, X, Trash } from "lucide-react";
 import BankAccountForm from '../components/accounts/BankAccountForm';
 import BankAccountCard from '../components/accounts/BankAccountCard';
 import { BankAccount } from '@/api/entities';
+import { apiClient } from '@/api/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export default function BankAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [editingAccount, setEditingAccount] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(null);
+  const [isClearingData, setIsClearingData] = useState(false);
 
   useEffect(() => {
     loadAccounts();
   }, []);
 
   const loadAccounts = async () => {
-    const data = await BankAccount.list();
-    setAccounts(data);
+    try {
+      const data = await BankAccount.list();
+      setAccounts(data);
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+      toast.error('Failed to load bank accounts');
+    }
   };
 
   const handleEdit = (account) => {
@@ -31,20 +49,61 @@ export default function BankAccounts() {
     try {
       if (editingAccount) {
         await BankAccount.update(editingAccount.id, accountData);
+        toast.success('Bank account updated successfully');
       } else {
         await BankAccount.create(accountData);
+        toast.success('Bank account created successfully');
       }
       setIsFormOpen(false);
       setEditingAccount(null);
       loadAccounts();
     } catch (error) {
       console.error('Error saving account:', error);
+      toast.error(error.message || 'Failed to save bank account');
     }
   };
 
   const handleDelete = async (accountId) => {
-    await BankAccount.delete(accountId);
-    loadAccounts();
+    try {
+      const response = await BankAccount.delete(accountId);
+      if (response && response.message) {
+        toast.success(response.message);
+        loadAccounts();
+        setDeletingAccount(null);
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error(error.message || 'Failed to delete bank account');
+      // Keep the dialog open if there's an error
+      if (error.message === 'Cannot delete account with existing transactions') {
+        toast.error('Cannot delete account with existing transactions. Please delete all transactions first.');
+      }
+    }
+  };
+
+  const handleClearAllData = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/api/accounts/clear-all-data', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear data');
+      }
+
+      const data = await response.json();
+      toast.success(data.message);
+      loadAccounts();
+      setIsClearingData(false);
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      toast.error(error.message || 'Failed to clear data');
+      setIsClearingData(false);
+    }
   };
 
   return (
@@ -55,13 +114,23 @@ export default function BankAccounts() {
           <p className="text-gray-400">Manage your bank accounts</p>
         </div>
         
-        <Button onClick={() => {
-          setEditingAccount(null);
-          setIsFormOpen(true);
-        }}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Bank Account
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="destructive" 
+            onClick={() => setIsClearingData(true)}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            <Trash className="w-4 h-4 mr-2" />
+            Clear All Data
+          </Button>
+          <Button onClick={() => {
+            setEditingAccount(null);
+            setIsFormOpen(true);
+          }}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Bank Account
+          </Button>
+        </div>
       </div>
 
       {isFormOpen && (
@@ -100,13 +169,55 @@ export default function BankAccounts() {
         </div>
       )}
 
+      <AlertDialog open={!!deletingAccount} onOpenChange={(open) => !open && setDeletingAccount(null)}>
+        <AlertDialogContent className="bg-gray-800 text-white border border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this account?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              This action cannot be undone. This will permanently delete the bank account
+              and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => handleDelete(deletingAccount.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isClearingData} onOpenChange={(open) => !open && setIsClearingData(false)}>
+        <AlertDialogContent className="bg-gray-800 text-white border border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Data</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              This will delete all your bank accounts, transactions, and credit cards. This action cannot be undone.
+              Are you sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={handleClearAllData}
+            >
+              Clear All Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {accounts.map((account) => (
           <BankAccountCard
             key={account.id}
             account={account}
             onEdit={() => handleEdit(account)}
-            onDelete={() => handleDelete(account.id)}
+            onDelete={() => setDeletingAccount(account)}
           />
         ))}
         

@@ -84,10 +84,10 @@ export default function AccountTransactions({ transactions = [], defaultCurrency
           
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-200 truncate">
-              {transaction.description || getTranslatedCategory(transaction.category)}
+              {transaction.description || (transaction.category?.name || 'General')}
             </p>
             <p className="text-sm text-gray-400">
-              {getTranslatedCategory(transaction.category)} • {getTranslatedSubcategory(transaction.category, transaction.subcategory)}
+              {transaction.category?.name || 'General'} • {transaction.subcategory?.name || 'General'}
             </p>
             <p className="text-xs text-gray-500">
               {format(new Date(transaction.date), 'MMM d, yyyy')}
@@ -100,7 +100,7 @@ export default function AccountTransactions({ transactions = [], defaultCurrency
               : 'text-red-400'
           }`}>
             {transaction.type === 'income' ? '+' : '-'}
-            {transaction.currency} {transaction.amount.toLocaleString()}
+            {transaction.currency || defaultCurrency} {transaction.amount.toLocaleString()}
           </div>
         </div>
       ))}

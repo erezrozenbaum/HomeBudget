@@ -72,10 +72,22 @@ const DropdownMenuCheckboxItem = ({ children, checked, onCheckedChange, classNam
   );
 };
 
+const DropdownMenuItem = ({ children, className = "", onClick }) => {
+  return (
+    <button
+      className={`flex items-center w-full px-3 py-2 text-sm rounded hover:bg-gray-100 ${className}`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+};
+
 export {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem

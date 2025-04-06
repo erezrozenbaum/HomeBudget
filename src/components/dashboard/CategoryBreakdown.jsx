@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -129,7 +128,7 @@ export default function CategoryBreakdown({
     filteredTransactions
       .filter(t => t.type === viewType)
       .forEach(t => {
-        const category = t.category || 'Uncategorized';
+        const category = t.category?.name || 'Uncategorized';
         if (!totals[category]) {
           totals[category] = {
             name: category,
@@ -138,7 +137,7 @@ export default function CategoryBreakdown({
           };
         }
         
-        const subcategory = t.subcategory || 'General';
+        const subcategory = t.subcategory?.name || 'General';
         if (!totals[category].subcategories[subcategory]) {
           totals[category].subcategories[subcategory] = 0;
         }

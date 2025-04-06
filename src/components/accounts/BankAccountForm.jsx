@@ -10,6 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 export default function BankAccountForm({ account, onSave, onCancel }) {
   const [businesses, setBusinesses] = useState([]);
@@ -18,16 +25,18 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
   const [formData, setFormData] = useState(account || {
     name: "",
     description: "",
-    bank_number: "",
-    initial_balance: 0,
-    current_balance: 0,
+    accountNumber: "",
+    balance: 0,
     currency: "ILS",
     color: "#3b82f6",
     type: "checking",
     is_active: true,
     account_type: "personal",
     business_use_percentage: 0,
-    business_id: ""
+    business_id: "",
+    institution: "",
+    routingNumber: "",
+    notes: ""
   });
 
   useEffect(() => {
@@ -57,12 +66,12 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({
+    const data = {
       ...formData,
-      initial_balance: Number(formData.initial_balance),
-      current_balance: Number(formData.current_balance),
+      balance: Number(formData.balance),
       business_use_percentage: Number(formData.business_use_percentage)
-    });
+    };
+    onSave(data);
   };
 
   const handleChange = (key, value) => {
@@ -73,22 +82,43 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
   };
 
   const handleAccountTypeChange = (type) => {
-    setFormData(prev => ({ ...prev, account_type: type }));
+    setFormData(prev => {
+      const newData = { ...prev, account_type: type };
+      
+      if (type === 'personal') {
+        newData.business_id = '';
+        newData.business_use_percentage = 0;
+      }
+      
+      return newData;
+    });
     setShowBusinessFields(type === 'business' || type === 'mixed');
-    
-    if (type === 'personal') {
-      setFormData(prev => ({
-        ...prev,
-        business_id: '',
-        business_use_percentage: 0
-      }));
-    }
   };
+
+  const renderFieldWithTooltip = (label, tooltip, field) => (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Label className="text-white">{label}</Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="w-4 h-4 text-gray-400" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      {field}
+    </div>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="name" className="text-white">Account Name</Label>
+      {renderFieldWithTooltip(
+        "Account Name",
+        "Enter a descriptive name for your bank account",
         <Input
           id="name"
           value={formData.name}
@@ -96,55 +126,72 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
           className="bg-gray-900 border-gray-700 text-white"
           required
         />
-      </div>
+      )}
 
-      <div>
-        <Label htmlFor="description" className="text-white">Description</Label>
+      {renderFieldWithTooltip(
+        "Description",
+        "Add any additional notes or details about this account",
         <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => handleChange('description', e.target.value)}
+          id="notes"
+          value={formData.notes}
+          onChange={(e) => handleChange('notes', e.target.value)}
           className="bg-gray-900 border-gray-700 text-white"
         />
-      </div>
+      )}
 
-      <div>
-        <Label htmlFor="bank_number" className="text-white">Bank Number</Label>
+      {renderFieldWithTooltip(
+        "Account Number",
+        "Your bank account number (this will be encrypted)",
         <Input
-          id="bank_number"
-          value={formData.bank_number}
-          onChange={(e) => handleChange('bank_number', e.target.value)}
+          id="accountNumber"
+          value={formData.accountNumber}
+          onChange={(e) => handleChange('accountNumber', e.target.value)}
           className="bg-gray-900 border-gray-700 text-white"
         />
+      )}
+
+      {renderFieldWithTooltip(
+        "Routing Number",
+        "Your bank's routing number (this will be encrypted)",
+        <Input
+          id="routingNumber"
+          value={formData.routingNumber}
+          onChange={(e) => handleChange('routingNumber', e.target.value)}
+          className="bg-gray-900 border-gray-700 text-white"
+        />
+      )}
+
+      {renderFieldWithTooltip(
+        "Institution",
+        "The name of your bank or financial institution",
+        <Input
+          id="institution"
+          value={formData.institution}
+          onChange={(e) => handleChange('institution', e.target.value)}
+          className="bg-gray-900 border-gray-700 text-white"
+          required
+        />
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        {renderFieldWithTooltip(
+          "Balance",
+          "Current balance in your account",
+          <Input
+            id="balance"
+            type="number"
+            value={formData.balance}
+            onChange={(e) => handleChange('balance', e.target.value)}
+            className="bg-gray-900 border-gray-700 text-white"
+            required
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="initial_balance" className="text-white">Initial Balance</Label>
-          <Input
-            id="initial_balance"
-            type="number"
-            value={formData.initial_balance}
-            onChange={(e) => handleChange('initial_balance', e.target.value)}
-            className="bg-gray-900 border-gray-700 text-white"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="current_balance" className="text-white">Current Balance</Label>
-          <Input
-            id="current_balance"
-            type="number"
-            value={formData.current_balance}
-            onChange={(e) => handleChange('current_balance', e.target.value)}
-            className="bg-gray-900 border-gray-700 text-white"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-white">Currency</Label>
+        {renderFieldWithTooltip(
+          "Currency",
+          "The currency used for this account",
           <Select
             value={formData.currency}
             onValueChange={(value) => handleChange('currency', value)}
@@ -160,10 +207,11 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
               <SelectItem value="JPY" className="text-gray-100">JPY</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        )}
 
-        <div>
-          <Label className="text-white">Account Type</Label>
+        {renderFieldWithTooltip(
+          "Account Type",
+          "The type of bank account",
           <Select
             value={formData.type}
             onValueChange={(value) => handleChange('type', value)}
@@ -178,11 +226,12 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
               <SelectItem value="other" className="text-gray-100">Other</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        )}
       </div>
 
-      <div>
-        <Label className="text-white">Card Color</Label>
+      {renderFieldWithTooltip(
+        "Card Color",
+        "Choose a color for this account's card",
         <div className="grid grid-cols-8 gap-2">
           {[
             '#3b82f6', '#ef4444', '#22c55e', '#f59e0b',
@@ -199,11 +248,11 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
             />
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Account Type Selection */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-white">Account Type</label>
+      {renderFieldWithTooltip(
+        "Usage Type",
+        "How this account will be used (personal, business, or mixed)",
         <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
@@ -239,7 +288,7 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
             Mixed
           </button>
         </div>
-      </div>
+      )}
       
       {/* Business Fields */}
       {showBusinessFields && (
@@ -251,8 +300,9 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
             )}
           </div>
           
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-white">Business</label>
+          {renderFieldWithTooltip(
+            "Business",
+            "Select the business associated with this account",
             <Select
               value={formData.business_id || ''}
               onValueChange={(value) => handleChange('business_id', value)}
@@ -269,11 +319,12 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          )}
           
           {formData.account_type === 'mixed' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-white">Business Use Percentage</label>
+            renderFieldWithTooltip(
+              "Business Use Percentage",
+              "What percentage of this account is used for business activities?",
               <div className="flex items-center">
                 <Input
                   type="number"
@@ -285,10 +336,7 @@ export default function BankAccountForm({ account, onSave, onCancel }) {
                 />
                 <span className="ml-2 text-white">%</span>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
-                For tax purposes, what percentage of this account is used for business activities?
-              </p>
-            </div>
+            )
           )}
         </div>
       )}
